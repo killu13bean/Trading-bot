@@ -1,0 +1,131 @@
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+
+from src.engine import TradingEngine
+
+
+class StaticMarketDataProvider:
+    """A minimal static provider for demo purposes."""
+
+    def get_watchlist(self, settings):
+        return ["AAPL", "TSLA"]
+
+    def get_current_price(self, symbol: str) -> float:
+        sample = {"AAPL": 200.0, "TSLA": 700.0}
+        return sample.get(symbol, 0.0)
+
+    def get_historical(self, symbol: str, days: int):
+        # simple deterministic synthetic history required for scan
+        base = 100 if symbol == "AAPL" else 600
+        return [{"close": float(base + i), "volume": 1_000_000 + i * 1000} for i in range(days)]
+
+
+app = FastAPI(title="Automated Market Scanner")
+
+
+@app.get("/", response_class=HTMLResponse)
+def root() -> HTMLResponse:
+    settings = {"watchlist": ["AAPL", "TSLA"], "starting_cash": 100000}
+    provider = StaticMarketDataProvider()
+    engine = TradingEngine(settings=settings, market_data_provider=provider)
+    report = engine.run_cycle()
+
+    summary = report.get("summary", "")
+    balance = report.get("balance", 0)
+    positions = report.get("positions", [])
+    notifications = report.get("notifications", [])
+    decisions = report.get("decisions", [])
+    scan_results = report.get("scan_results", [])
+
+    def action_color(action: str) -> str:
+        normalized = (action or "").lower()
+        if "buy" in normalized:
+            return "#4CAF50"
+        if "sell" in normalized:
+            return "#F44336"
+        return "#CCCCCC"
+
+    notifications_html = "".join(
+        f"<li style='padding:6px 8px;border-bottom:1px solid #333;'>{n}</li>" for n in notifications
+    )
+
+    decisions_html = "".join(
+        """<li style='padding:10px 12px;border-bottom:1px solid #333;'>
+            <strong>{symbol}</strong> - 
+            <span style='color:{color};font-weight:600'>{action}</span><br>
+            <small>Reason: {reason}</small><br>
+            <small>Score: {score}</small>
+        </li>""".format(
+            symbol=d.get("symbol", "N/A"),
+            action=d.get("action", "hold"),
+            reason=d.get("reason", "-"),
+            score=d.get("score", "-") if d.get("score") is not None else "-",
+            color=action_color(d.get("action", "")),
+        ) for d in decisions
+    )
+
+    scan_html = "".join(
+        """<li style='padding:10px 12px;border-bottom:1px solid #333;'>
+            <strong>{symbol}</strong><br>
+            <span>Price: ${price:.2f}</span> • 
+            <span>Trend: {trend_state}</span> • 
+            <span>Score: {score}</span>
+        </li>""".format(
+            symbol=r.get("symbol", "N/A"),
+            price=r.get("price", 0.0),
+            trend_state=r.get("trend_state", "unknown"),
+            score=r.get("score", "-"),
+        ) for r in scan_results
+    )
+
+    html = f"""
+    <html>
+      <head>
+        <title>Automated Market Scanner</title>
+      </head>
+      <body style='background:#090B10;color:#EEE;font-family:Arial,Helvetica,sans-serif;padding:20px;margin:0;'>
+
+        <div style='max-width:1100px;margin:0 auto;'>
+          <header style='padding:20px 12px;margin-bottom:14px;border-radius:12px;background:#141A24;border:1px solid #2B2F38;'>
+            <h1 style='margin:0;font-size:2rem;color:#FFFFFF;'>Automated Market Scanner</h1>
+            <p style='margin:8px 0 0;color:#BBB;'>Paper trading dashboard with production-style scanner output.</p>
+          </header>
+
+          <section style='display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;'>
+            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:14px;'>
+              <h2 style='margin:0 0 10px;font-size:1.15rem;color:#AFCB6E;'>Summary</h2>
+              <p style='margin:0;color:#DDD;line-height:1.5;'>{summary}</p>
+            </div>
+            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:14px;'>
+              <h2 style='margin:0 0 10px;font-size:1.15rem;color:#81C7D4;'>Account</h2>
+              <p style='margin:4px 0;color:#EEE;'>Available balance: <strong>${balance:,.2f}</strong></p>
+              <p style='margin:4px 0;color:#EEE;'>Open positions: <strong>{len(positions)}</strong></p>
+              <p style='margin:4px 0;color:#EEE;'>Notifications: <strong>{len(notifications)}</strong></p>
+            </div>
+            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:14px;'>
+              <h2 style='margin:0 0 10px;font-size:1.15rem;color:#E2C46F;'>Notifications</h2>
+              <ul style='list-style:none;padding-left:0;margin:0;color:#DDD;max-height:150px;overflow:auto;'>{notifications_html}</ul>
+            </div>
+          </section>
+
+          <section style='margin-top:16px;'>
+            <h2 style='margin:0 0 8px;font-size:1.2rem;color:#E7E7E7;'>Decisions</h2>
+            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:0;margin:0;'>
+              <ul style='list-style:none;padding-left:0;margin:0;'>{decisions_html or "<li style=\'padding:10px;\'>No decisions this cycle.</li>"}</ul>
+            </div>
+          </section>
+
+          <section style='margin-top:16px;'>
+            <h2 style='margin:0 0 8px;font-size:1.2rem;color:#E7E7E7;'>Scan Results</h2>
+            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:0;'>
+              <ul style='list-style:none;padding-left:0;margin:0;'>{scan_html or "<li style=\'padding:10px;\'>No scan results available.</li>"}</ul>
+            </div>
+          </section>
+
+        </div>
+
+      </body>
+    </html>
+    """
+
+    return HTMLResponse(content=html)
