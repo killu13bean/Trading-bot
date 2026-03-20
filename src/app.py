@@ -79,46 +79,71 @@ def root() -> HTMLResponse:
     )
 
     html = f"""
-    <html>
+    <html lang='en'>
       <head>
+        <meta charset='UTF-8' />
+        <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
         <title>Automated Market Scanner</title>
+        <style>
+          body {{ background:#090B10; color:#EEE; font-family:Arial,Helvetica,sans-serif; margin:0; padding:12px; }}
+          .container {{ max-width:1100px; margin:0 auto; }}
+          .card {{ background:#171F2A; border:1px solid #2C3540; border-radius:12px; padding:14px; box-shadow:0 0 12px rgba(0,0,0,.35); }}
+          .header-card {{ padding:16px 14px; }}
+          .panel-list {{ list-style:none; padding:0; margin:0; }}
+          .panel-list li {{ padding:10px; border-bottom:1px solid #333; }}
+          .panel-list li:last-child {{ border-bottom:none; }}
+          .label {{ font-weight:700; }}
+          .buy {{ color:#4CAF50; }}
+          .sell {{ color:#F44336; }}
+          .neutral {{ color:#CCCCCC; }}
+          @media (max-width: 768px) {{
+            body {{ padding:10px; }}
+            h1 {{ font-size:1.5rem; }}
+            h2 {{ font-size:1.05rem; }}
+            .grid {{ display:block; }}
+            .card {{ margin-bottom:12px; }}
+          }}
+          @media (min-width: 769px) {{
+            .grid {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:12px; }}
+          }}
+        </style>
       </head>
-      <body style='background:#090B10;color:#EEE;font-family:Arial,Helvetica,sans-serif;padding:20px;margin:0;'>
+      <body>
 
-        <div style='max-width:1100px;margin:0 auto;'>
-          <header style='padding:20px 12px;margin-bottom:14px;border-radius:12px;background:#141A24;border:1px solid #2B2F38;'>
-            <h1 style='margin:0;font-size:2rem;color:#FFFFFF;'>Automated Market Scanner</h1>
+        <div class='container'>
+          <header class='card header-card'>
+            <h1 style='margin:0;color:#FFFFFF;'>Automated Market Scanner</h1>
             <p style='margin:8px 0 0;color:#BBB;'>Paper trading dashboard with production-style scanner output.</p>
           </header>
 
-          <section style='display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;'>
-            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:14px;'>
+          <section class='grid'>
+            <article class='card'>
               <h2 style='margin:0 0 10px;font-size:1.15rem;color:#AFCB6E;'>Summary</h2>
               <p style='margin:0;color:#DDD;line-height:1.5;'>{summary}</p>
-            </div>
-            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:14px;'>
+            </article>
+            <article class='card'>
               <h2 style='margin:0 0 10px;font-size:1.15rem;color:#81C7D4;'>Account</h2>
               <p style='margin:4px 0;color:#EEE;'>Available balance: <strong>${balance:,.2f}</strong></p>
               <p style='margin:4px 0;color:#EEE;'>Open positions: <strong>{len(positions)}</strong></p>
               <p style='margin:4px 0;color:#EEE;'>Notifications: <strong>{len(notifications)}</strong></p>
-            </div>
-            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:14px;'>
+            </article>
+            <article class='card'>
               <h2 style='margin:0 0 10px;font-size:1.15rem;color:#E2C46F;'>Notifications</h2>
-              <ul style='list-style:none;padding-left:0;margin:0;color:#DDD;max-height:150px;overflow:auto;'>{notifications_html}</ul>
-            </div>
+              <ul class='panel-list' style='max-height:180px; overflow:auto;'>{notifications_html}</ul>
+            </article>
           </section>
 
           <section style='margin-top:16px;'>
             <h2 style='margin:0 0 8px;font-size:1.2rem;color:#E7E7E7;'>Decisions</h2>
-            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:0;margin:0;'>
-              <ul style='list-style:none;padding-left:0;margin:0;'>{decisions_html or "<li style=\'padding:10px;\'>No decisions this cycle.</li>"}</ul>
+            <div class='card'>
+              <ul class='panel-list'>{decisions_html or "<li>No decisions this cycle.</li>"}</ul>
             </div>
           </section>
 
-          <section style='margin-top:16px;'>
+          <section style='margin-top:16px; margin-bottom:20px;'>
             <h2 style='margin:0 0 8px;font-size:1.2rem;color:#E7E7E7;'>Scan Results</h2>
-            <div style='background:#171F2A;border:1px solid #2C3540;border-radius:10px;padding:0;'>
-              <ul style='list-style:none;padding-left:0;margin:0;'>{scan_html or "<li style=\'padding:10px;\'>No scan results available.</li>"}</ul>
+            <div class='card'>
+              <ul class='panel-list'>{scan_html or "<li>No scan results available.</li>"}</ul>
             </div>
           </section>
 
